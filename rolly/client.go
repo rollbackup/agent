@@ -30,7 +30,7 @@ type Client struct {
 }
 
 func NewAgent(backendAddr, hostId, token string) *Agent {
-	conn, err := secrpc.SecureDial("tcp", backendAddr, []byte(RollbackupCA))
+	conn, err := secrpc.SecureDial("tcp", backendAddr, RollbackupCA)
 	if err != nil {
 		log.Fatal("agent connection: ", err)
 	}
