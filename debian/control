@@ -8,5 +8,5 @@ Homepage: http://rollbackup.com
 
 Package: rollbackup
 Architecture: amd64 i386
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, rsync
 Description: Command line tool for interact with RollBackup.com service
