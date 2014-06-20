@@ -29,8 +29,8 @@ type Client struct {
 	Token  string
 }
 
-func NewAgent(hostId, token string) *Agent {
-	conn, err := secrpc.SecureDial("tcp", ":9001", "/home/vagrant/rolls/colombo/ca.pem")
+func NewAgent(backendAddr, hostId, token string) *Agent {
+	conn, err := secrpc.SecureDial("tcp", backendAddr, []byte(RollbackupCA))
 	if err != nil {
 		log.Fatal("agent connection: ", err)
 	}

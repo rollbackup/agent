@@ -16,7 +16,7 @@ func PublicKeyPath() string {
 	return KeyPath + ".pub"
 }
 
-func Bootstrap(authdata string) error {
+func Bootstrap(backendAddr, authdata string) error {
 	hostIdAndToken := strings.SplitN(authdata, "@", 2)
 	if len(hostIdAndToken) != 2 {
 		return errors.New("Unable to parse token")
@@ -37,7 +37,7 @@ func Bootstrap(authdata string) error {
 		return err
 	}
 
-	if err := NewAgent(hostId, token).Register(string(publicKey)); err != nil {
+	if err := NewAgent(backendAddr, hostId, token).Register(string(publicKey)); err != nil {
 		return err
 	}
 

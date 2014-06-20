@@ -11,10 +11,11 @@ import (
 )
 
 func main() {
+	backendAddr := flag.String("backend", "backend.rollbackup.com:8443", "backend addr")
 	flag.Parse()
 
 	if flag.Arg(0) == "init" {
-		if err := rolly.Bootstrap(flag.Arg(1)); err != nil {
+		if err := rolly.Bootstrap(*backendAddr, flag.Arg(1)); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println("Success! Host ready to backup.")
@@ -26,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	a := rolly.NewAgent(config.HostId, config.Token)
+	a := rolly.NewAgent(*backendAddr, config.HostId, config.Token)
 
 	switch flag.Arg(0) {
 	case "add":
