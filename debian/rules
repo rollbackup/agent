@@ -21,10 +21,10 @@ binary-arch: clean
 	dh_prep
 	dh_installdirs
 	go get -u github.com/rollbackup/agent
-	go install github.com/rollbackup/agent
+	go install github.com/rollbackup/agent/rollbackup
 	#find * -name '*.go' -exec dirname {} \; | xargs -n1 go install
 	mkdir -p $(PKGDIR)/usr/bin
-	cp $(GOPATH)/bin/agent $(PKGDIR)/usr/bin/rollbackup
+	cp $(GOPATH)/bin/rollbackup $(PKGDIR)/usr/bin/rollbackup
 	dh_strip
 	dh_compress
 	dh_fixperms

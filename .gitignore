@@ -1,7 +1,6 @@
 debian/files
 debian/rollbackup*
 *.log
-rollbackup
 bin
 pkg
 src
