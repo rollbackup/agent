@@ -2,3 +2,4 @@ rollbackup/rollbackup
 rollbackup/build
 *.log
 *.deb
+*.rpm

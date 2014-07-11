@@ -4,6 +4,8 @@ VERSION=$(cat VERSION)
 
 echo "Current Version: $VERSION"
 
+fpm_flags="--license GPLv3 --vendor RollBackup.com --url https://rollbackup.com/ --maintainer dist@rollbackup.com "
+
 _build() {
 	echo "Build and Package for $ARCH ..."
 
@@ -12,8 +14,8 @@ _build() {
 	mkdir -p build/usr/local/bin
 	cp rollbackup build/usr/local/bin/
 	
-	fpm -t deb -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION .
-	fpm -t rpm -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION .
+	fpm -t deb -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION $fpm_flags .
+	fpm -t rpm -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION $fpm_flags .
 
 	if [ ! -z "$CIRCLE_ARTIFACTS" ]; then
 		mv *.deb $CIRCLE_ARTIFACTS/
