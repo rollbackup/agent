@@ -2,7 +2,9 @@ dependencies:
   pre:
     - gem install fpm --no-ri --no-rdoc 
     - printf '[url "git@github.com:"]\n\tinsteadOf = https://github.com/\n' > ~/.gitconfig
-    
+ 
 deployment:
-  pre:
-    - ./build.sh
+  staging:
+    branch: cli-tuning
+    commands:
+      - ./build.sh
