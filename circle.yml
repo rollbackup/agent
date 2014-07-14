@@ -4,14 +4,8 @@ dependencies:
     - printf '[url "git@github.com:"]\n\tinsteadOf = https://github.com/\n' > ~/.gitconfig
   override:
     - go get -t -d -v ./...
-    - go build -v
+    - ./build.sh
  
 test:
   override:
     - go test -v ./... -race
- 
-deployment:
-  staging:
-    branch: cli-tuning
-    commands:
-      - ./build.sh
