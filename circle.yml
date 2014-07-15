@@ -2,9 +2,10 @@ dependencies:
   pre:
     - gem install fpm --no-ri --no-rdoc 
     - printf '[url "git@github.com:"]\n\tinsteadOf = https://github.com/\n' > ~/.gitconfig
+  override:
+    - go get -t -d -v ./...
+    - ./build.sh
  
-deployment:
-  staging:
-    branch: cli-tuning
-    commands:
-      - ./build.sh
+test:
+  override:
+    - go test -v ./... -race
