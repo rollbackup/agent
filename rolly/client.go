@@ -1,6 +1,7 @@
 package rolly
 
 import (
+	"errors"
 	"bytes"
 	"fmt"
 	"github.com/rollbackup/rb"
@@ -52,6 +53,15 @@ func (a *Agent) AddFolder(path string) error {
 
 }
 
+func (a *Agent) GetBackup(backupId string) error {
+	args := rb.HostGetBackupParams{Auth: *a.auth, BackupId: backupId}
+	var reply rb.HostGetBackupResult
+	err := a.backend.Call("Host.GetBackup", args, &reply)
+	log.Printf("%+v", reply)
+	return err
+}
+
+
 func (a *Agent) Register(publicKey string) error {
 	args := rb.HostRegisterParams{Auth: *a.auth, PublicKey: publicKey}
 	var reply rb.HostOpResult
@@ -74,18 +84,29 @@ func (a *Agent) RunTasks() error {
 	return nil
 }
 
+func makeKnownHosts(sshFp string) (string, error) {
+	f, err := ioutil.TempFile("", "rollbackup_known_hosts")
+	if err != nil {
+		return "", err
+	}
+
+	f.WriteString(sshFp)
+	return f.Name(), nil
+}
+
+func buildRsyncArgs(sshFp, sshKey string) []string {
+	return []string{"-avz", "-e", fmt.Sprintf("ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%s -i %s", sshFp, sshKey)}
+}
+
 func (a *Agent) execTask(task rb.Task, results chan TaskResult) {
-	f, err := ioutil.TempFile("", "rbd_known_hosts")
+	fpFile, err := makeKnownHosts(task.SshFingerprint)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	defer os.Remove(fpFile)
 
-	log.Println(f.Name())
-	defer os.Remove(f.Name())
-	f.WriteString(task.SshFingerprint)
-
-	args := []string{"-aze", fmt.Sprintf("ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%s -i %s", f.Name(), KeyPath)}
+	args := buildRsyncArgs(fpFile, KeyPath)
 	if task.LinkDest != "" {
 		args = append(args, fmt.Sprintf("--link-dest=%s", task.LinkDest))
 	}
@@ -100,6 +121,48 @@ func (a *Agent) execTask(task rb.Task, results chan TaskResult) {
 		res.Error = err
 	}
 	results <- res
+}
+
+func (a *Agent) Restore(backupId string, dest string) error {
+	args := rb.HostGetBackupParams{Auth: *a.auth, BackupId: backupId}
+	var reply rb.HostGetBackupResult
+	err := a.backend.Call("Host.GetBackup", args, &reply)
+	if err != nil {
+		return err
+	}
+
+	if !reply.Success {
+		return errors.New("backup not found")
+	}
+
+	return a.runRestore(dest, reply.RsyncUrl + "/", reply.SshFingerprint)
+}
+
+func (a *Agent) runRestore(local, remote, sshFp string) error {
+	fpFile, err := makeKnownHosts(sshFp)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(fpFile)
+
+	args := buildRsyncArgs(fpFile, KeyPath)
+	args = append(args, remote, local)
+
+	//log.Println(args)
+	cmd := exec.Command("rsync", args...)
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	log.Printf("Copy from remote host...")
+	if err := cmd.Wait(); err != nil {
+		log.Printf("Command finished with error: %v", err)
+		return err
+	}
+	log.Printf("OK. Completed!")
+
+	return nil
 }
 
 func (a *Agent) execTasks(tasks []rb.Task) error {

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os/user"
+	"path/filepath"
 )
 
 type Config struct {
@@ -11,7 +13,14 @@ type Config struct {
 	HostId string
 }
 
-const ConfigPath = "/tmp/rollbackup.conf"
+func ConfigPath() string {
+	return "/tmp/rollbackup.conf"
+	if u, err := user.Current(); err == nil {
+		return filepath.Join(u.HomeDir, ".rollbackup.conf")
+	} else {
+		panic(err)
+	}
+}
 
 func LoadConfig(filename string) (*Config, error) {
 	data, err := ioutil.ReadFile(filename)

@@ -10,6 +10,40 @@ import (
 	"path/filepath"
 )
 
+func RestoreAction(c *cli.Context) {
+	a := getAgent(c)
+	backupId := c.Args().Get(0)
+	destPath := c.Args().Get(1)
+
+	if destPath == "" {
+		destPath = "."
+	}
+
+	absPath, err := filepath.Abs(destPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if backupId == "" {
+		log.Fatal("no params")
+	}
+
+	log.Printf("Restore backup %s to %s...\n", backupId, absPath)
+
+	a.Restore(backupId, absPath)
+}
+
+func GetAction(c *cli.Context) {
+        if !c.Args().Present() {
+                log.Fatal("no backup_id given")
+        }
+        //a.Restore(c.Args().First())
+}
+
+func ListAction(c *cli.Context) {
+	
+}
+
 func InitAction(c *cli.Context) {
 	if err := rolly.Bootstrap(c.GlobalString("backend"), c.Args().First()); err != nil {
 		log.Fatal(err)
@@ -18,7 +52,7 @@ func InitAction(c *cli.Context) {
 }
 
 func getAgent(c *cli.Context) *rolly.Agent {
-	config, err := rolly.LoadConfig(rolly.ConfigPath)
+	config, err := rolly.LoadConfig(rolly.ConfigPath())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,6 +118,23 @@ func main() {
 			Usage:  "Make a backup",
 			Action: BackupAction,
 		},
+		{
+			Name:   "ls",
+			Usage:  "List folders and backups",
+			Action: ListAction,
+		},
+		{
+			Name:   "restore",
+			Usage:  "Restore backup",
+			Action: RestoreAction,
+		},
+		{
+			Name:   "get",
+			Usage:  "Get backup",
+			Action: GetAction,
+		},
+
+
 	}
 
 	app.Run(os.Args)
