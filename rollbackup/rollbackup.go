@@ -30,18 +30,14 @@ func RestoreAction(c *cli.Context) {
 
 	log.Printf("Restore backup %s to %s...\n", backupId, absPath)
 
-	a.Restore(backupId, absPath)
+	if err := a.Restore(backupId, absPath); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func GetAction(c *cli.Context) {
-        if !c.Args().Present() {
-                log.Fatal("no backup_id given")
-        }
-        //a.Restore(c.Args().First())
-}
-
-func ListAction(c *cli.Context) {
-	
+func StatusAction(c *cli.Context) {
+	a := getAgent(c)
+	a.GetFolders()
 }
 
 func InitAction(c *cli.Context) {
@@ -91,7 +87,7 @@ func BackupAction(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	log.Println("ok")
+	log.Println("completed")
 }
 
 func main() {
@@ -119,22 +115,15 @@ func main() {
 			Action: BackupAction,
 		},
 		{
-			Name:   "ls",
-			Usage:  "List folders and backups",
-			Action: ListAction,
+			Name:   "status",
+			Usage:  "Show folders backup status",
+			Action: StatusAction,
 		},
 		{
 			Name:   "restore",
 			Usage:  "Restore backup",
 			Action: RestoreAction,
 		},
-		{
-			Name:   "get",
-			Usage:  "Get backup",
-			Action: GetAction,
-		},
-
-
 	}
 
 	app.Run(os.Args)

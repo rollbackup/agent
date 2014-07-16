@@ -14,7 +14,6 @@ type Config struct {
 }
 
 func ConfigPath() string {
-	return "/tmp/rollbackup.conf"
 	if u, err := user.Current(); err == nil {
 		return filepath.Join(u.HomeDir, ".rollbackup.conf")
 	} else {
