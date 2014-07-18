@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/user"
 	"path/filepath"
 )
@@ -46,9 +47,16 @@ func WriteConfig(c *Config, configPath string) error {
 	return nil
 }
 
-func WriteCrontab(token string) error {
-	cmd := fmt.Sprintf("* * * * * /usr/bin/rollbackup backup %s", token)
-	if err := ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644); err != nil {
+func WriteCrontab() error {
+	cmd := fmt.Sprintf("* * * * * /usr/bin/rollbackup backup")
+	return ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644)
+}
+
+func RemoveCrontab() error {
+	if err := os.Remove("/etc/cron.d/rollbackup"); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	return nil

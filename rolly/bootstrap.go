@@ -46,6 +46,10 @@ func Bootstrap(backendAddr, authdata string) error {
 		return err
 	}
 
+	if err := WriteCrontab(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

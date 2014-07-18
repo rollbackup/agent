@@ -45,6 +45,7 @@ func InitAction(c *cli.Context) {
 		log.Fatal(err)
 	}
 	fmt.Println("Success! Host ready to backup.")
+	fmt.Println("Add folder with `rollbackup add [<path>]`")
 }
 
 func getAgent(c *cli.Context) *rolly.Agent {
@@ -90,6 +91,24 @@ func BackupAction(c *cli.Context) {
 	log.Println("completed")
 }
 
+func EnableAction(c *cli.Context) {
+
+	if err := rolly.WriteCrontab(); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Success! Agent backup schedule runs with crontab.")
+}
+
+func DisableAction(c *cli.Context) {
+
+	if err := rolly.RemoveCrontab(); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Success! Agent backup schedule disabled.")
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "rollbackup"
@@ -123,6 +142,16 @@ func main() {
 			Name:   "restore",
 			Usage:  "Restore backup",
 			Action: RestoreAction,
+		},
+		{
+			Name:   "on",
+			Usage:  "Enable",
+			Action: EnableAction,
+		},
+		{
+			Name:   "off",
+			Usage:  "Disable",
+			Action: DisableAction,
 		},
 	}
 
