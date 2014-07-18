@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/user"
+	"path/filepath"
 )
 
 type Config struct {
@@ -11,7 +14,13 @@ type Config struct {
 	HostId string
 }
 
-const ConfigPath = "/tmp/rollbackup.conf"
+func ConfigPath() string {
+	if u, err := user.Current(); err == nil {
+		return filepath.Join(u.HomeDir, ".rollbackup.conf")
+	} else {
+		panic(err)
+	}
+}
 
 func LoadConfig(filename string) (*Config, error) {
 	data, err := ioutil.ReadFile(filename)
@@ -38,9 +47,16 @@ func WriteConfig(c *Config, configPath string) error {
 	return nil
 }
 
-func WriteCrontab(token string) error {
-	cmd := fmt.Sprintf("* * * * * /usr/bin/rollbackup backup %s", token)
-	if err := ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644); err != nil {
+func WriteCrontab() error {
+	cmd := fmt.Sprintf("* * * * * /usr/bin/rollbackup backup")
+	return ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644)
+}
+
+func RemoveCrontab() error {
+	if err := os.Remove("/etc/cron.d/rollbackup"); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	return nil

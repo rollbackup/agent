@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const KeyPath = "/tmp/rbdkey"
+const KeyPath = "/tmp/id_rollbackup"
 
 func PublicKeyPath() string {
 	return KeyPath + ".pub"
@@ -42,7 +42,11 @@ func Bootstrap(backendAddr, authdata string) error {
 	}
 
 	c := &Config{HostId: hostId, Token: token}
-	if err := WriteConfig(c, ConfigPath); err != nil {
+	if err := WriteConfig(c, ConfigPath()); err != nil {
+		return err
+	}
+
+	if err := WriteCrontab(); err != nil {
 		return err
 	}
 

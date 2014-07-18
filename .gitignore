@@ -1,7 +1,5 @@
-debian/files
-debian/rollbackup*
+rollbackup/rollbackup
+rollbackup/build
 *.log
-rollbackup
-bin
-pkg
-src
+*.deb
+*.rpm
