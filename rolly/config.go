@@ -48,7 +48,7 @@ func WriteConfig(c *Config, configPath string) error {
 }
 
 func WriteCrontab() error {
-	cmd := fmt.Sprintf("* * * * * /usr/bin/rollbackup backup")
+	cmd := fmt.Sprintf("* * * * * root /usr/local/bin/rollbackup backup >> /var/log/rollbackup_cron.log 2>&1")
 	return ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644)
 }
 

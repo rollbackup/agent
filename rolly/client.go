@@ -95,20 +95,22 @@ func (a *Agent) RunTasks() error {
 			if _, err := os.Stat(t.Local); err != nil {
 				log.Println(err)
 				a.logBackup(&rb.HostLogBackupParams{
-					BackupId: t.BackupId,
-					FolderId: t.FolderId,
-					Path: t.Local,
+					BackupId:  t.BackupId,
+					FolderId:  t.FolderId,
+					Path:      t.Local,
 					StatError: fmt.Sprintf("%s", err),
 				})
 				wg.Done()
 				return
 			}
 			log.Printf("Start backup %s...", t.Local)
-			err := a.backup(&t)
+			out, err := a.backup(&t)
 			if err != nil {
 				log.Printf("Fail Backup %s error: %s", t.Local, err)
 			}
-			a.commitBackup(&t)
+			if err := a.commitBackup(&t, out); err != nil {
+				log.Println(err)
+			}
 			wg.Done()
 		}(t)
 	}
@@ -123,11 +125,11 @@ func (a *Agent) logBackup(log *rb.HostLogBackupParams) error {
 	return a.backend.Call("Host.LogBackup", log, &reply)
 }
 
-func (a *Agent) backup(t *rb.Task) error {
+func (a *Agent) backup(t *rb.Task) (string, error) {
 	fpFile, err := makeKnownHosts(t.SshFingerprint)
 	if err != nil {
 		log.Println(err)
-		return err
+		return "", err
 	}
 	defer os.Remove(fpFile)
 
@@ -149,21 +151,22 @@ func (a *Agent) backup(t *rb.Task) error {
 	a.logBackup(&rb.HostLogBackupParams{
 		BackupId:    t.BackupId,
 		FolderId:    t.FolderId,
-		Path: t.Local,
+		Path:        t.Local,
 		RsyncArgs:   args,
 		RsyncStdout: stdout.String(),
 		RsyncStderr: stderr.String(),
 		ExecError:   fmt.Sprintf("%s", err),
 	})
 
-	return err
+	return stdout.String(), err
 }
 
-func (a *Agent) commitBackup(task *rb.Task) error {
+func (a *Agent) commitBackup(task *rb.Task, rsyncOutput string) error {
 	args := rb.HostCommitBackupParams{
-		Auth:     *a.auth,
-		FolderId: task.FolderId,
-		BackupId: task.BackupId,
+		Auth:        *a.auth,
+		FolderId:    task.FolderId,
+		BackupId:    task.BackupId,
+		RsyncOutput: rsyncOutput,
 	}
 	var reply rb.HostOpResult
 	return a.backend.Call("Host.CommitBackup", args, &reply)
