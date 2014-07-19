@@ -92,7 +92,6 @@ func BackupAction(c *cli.Context) {
 }
 
 func EnableAction(c *cli.Context) {
-
 	if err := rolly.WriteCrontab(); err != nil {
 		log.Fatal(err)
 	}
@@ -101,7 +100,6 @@ func EnableAction(c *cli.Context) {
 }
 
 func DisableAction(c *cli.Context) {
-
 	if err := rolly.RemoveCrontab(); err != nil {
 		log.Fatal(err)
 	}

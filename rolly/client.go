@@ -88,56 +88,82 @@ func (a *Agent) RunTasks() error {
 		return nil
 	}
 
-	//log.Printf("%+v", reply.Tasks)
 	var wg sync.WaitGroup
 	for _, t := range reply.Tasks {
 		wg.Add(1)
-		go func(t *rb.Task) {
+		go func(t rb.Task) {
+			if _, err := os.Stat(t.Local); err != nil {
+				log.Println(err)
+				a.logBackup(&rb.HostLogBackupParams{
+					BackupId: t.BackupId,
+					FolderId: t.FolderId,
+					Path: t.Local,
+					StatError: fmt.Sprintf("%s", err),
+				})
+				wg.Done()
+				return
+			}
 			log.Printf("Start backup %s...", t.Local)
-			out, err := a.backup(t)
+			err := a.backup(&t)
 			if err != nil {
 				log.Printf("Fail Backup %s error: %s", t.Local, err)
 			}
-			a.commitBackup(t, out, fmt.Sprintf("%s", err))
+			a.commitBackup(&t)
 			wg.Done()
-		}(&t)
+		}(t)
 	}
 	wg.Wait()
 
 	return nil
 }
 
-func (a *Agent) backup(task *rb.Task) (string, error) {
-	fpFile, err := makeKnownHosts(task.SshFingerprint)
+func (a *Agent) logBackup(log *rb.HostLogBackupParams) error {
+	log.Auth = *a.auth
+	var reply rb.HostOpResult
+	return a.backend.Call("Host.LogBackup", log, &reply)
+}
+
+func (a *Agent) backup(t *rb.Task) error {
+	fpFile, err := makeKnownHosts(t.SshFingerprint)
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return err
 	}
 	defer os.Remove(fpFile)
 
 	args := buildRsyncArgs(fpFile, KeyPath)
-	if task.LinkDest != "" {
-		args = append(args, fmt.Sprintf("--link-dest=%s", task.LinkDest))
+	if t.LinkDest != "" {
+		args = append(args, fmt.Sprintf("--link-dest=%s", t.LinkDest))
 	}
-	args = append(args, "--stats", task.Local, task.Remote)
+	args = append(args, "--stats", t.Local, t.Remote)
 
-	// TODO: verbose logging
-	//log.Println(args)
 	cmd := exec.Command("rsync", args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	cmd.Stderr = &stderr
+	cmd.Stdout = &stdout
+
 	err = cmd.Run()
-	return out.String(), err
+
+	a.logBackup(&rb.HostLogBackupParams{
+		BackupId:    t.BackupId,
+		FolderId:    t.FolderId,
+		Path: t.Local,
+		RsyncArgs:   args,
+		RsyncStdout: stdout.String(),
+		RsyncStderr: stderr.String(),
+		ExecError:   fmt.Sprintf("%s", err),
+	})
+
+	return err
 }
 
-func (a *Agent) commitBackup(task *rb.Task, output string, execErr string) error {
+func (a *Agent) commitBackup(task *rb.Task) error {
 	args := rb.HostCommitBackupParams{
-		Auth: *a.auth,
+		Auth:     *a.auth,
 		FolderId: task.FolderId,
 		BackupId: task.BackupId,
-		RsyncOutput: output,
-		RsyncExecError: execErr,
 	}
 	var reply rb.HostOpResult
 	return a.backend.Call("Host.CommitBackup", args, &reply)

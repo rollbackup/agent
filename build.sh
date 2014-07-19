@@ -13,8 +13,8 @@ _build() {
 	strip ./rollbackup
 	mkdir -p build/usr/local/bin
 	cp rollbackup build/usr/local/bin/
-  mkdir -p build/etc/cron.d
-  echo "* * * * * /usr/bin/rollbackup backup" > build/etc/cron.d/rollbackup
+	mkdir -p build/etc/cron.d
+	echo "* * * * * root /usr/local/bin/rollbackup backup >> /var/log/rollbackup_cron.log 2>&1" > build/etc/cron.d/rollbackup
 	
 	fpm -t deb -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION $fpm_flags .
 	fpm -t rpm -C build -s dir -n rollbackup -f -a $ARCH -v $VERSION $fpm_flags .
