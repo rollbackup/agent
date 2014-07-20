@@ -183,7 +183,7 @@ func makeKnownHosts(sshFp string) (string, error) {
 }
 
 func buildRsyncArgs(sshFp, sshKey string) []string {
-	return []string{"-az", "-e", fmt.Sprintf("ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%s -i %s", sshFp, sshKey)}
+	return []string{"-az", "-e", fmt.Sprintf("ssh -c arcfour -o Compression=no -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%s -i %s", sshFp, sshKey)}
 }
 
 func (a *Agent) Restore(backupId string, dest string) error {
