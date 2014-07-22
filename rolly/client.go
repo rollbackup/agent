@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/rollbackup/gosigar"
 	"github.com/rollbackup/rb"
 	"github.com/rollbackup/secrpc"
 	"io/ioutil"
@@ -76,6 +77,73 @@ func (a *Agent) Register(publicKey string) error {
 	return a.backend.Call("Host.Register", args, &reply)
 }
 
+func (a *Agent) TrackMetrics() error {
+	params := rb.HostTrackMetricsParams{
+		Auth: *a.auth,
+	}
+
+	var err error
+	params.Hostname, err = os.Hostname()
+	if err != nil {
+		log.Println(err)
+	}
+
+	sig := sigar.ConcreteSigar{}
+
+	params.LoadAverage, err = sig.GetLoadAverage()
+	if err != nil {
+		log.Println(err)
+	}
+
+	params.Mem, err = sig.GetMem()
+	if err != nil {
+		log.Println(err)
+	}
+
+	params.Swap, err = sig.GetSwap()
+	if err != nil {
+		log.Println(err)
+	}
+
+	params.Uptime = sigar.Uptime{}
+	if params.Uptime.Get() != nil {
+		log.Println(err)
+	}
+
+	params.FileSystemList = sigar.FileSystemList{}
+	if params.FileSystemList.Get() != nil {
+		log.Println(err)
+	}
+
+	params.FileSystemUsage = make(map[string]sigar.FileSystemUsage)
+	for _, fs := range params.FileSystemList.List {
+		dir_name := fs.DirName
+		if dir_name == "" {
+			continue
+		}
+
+		usage := sigar.FileSystemUsage{}
+		if err := usage.Get(dir_name); err == nil {
+			params.FileSystemUsage[dir_name] = usage
+		} else {
+			log.Println(err)
+		}
+	}
+
+	params.CpuList = sigar.CpuList{}
+	if params.CpuList.Get() != nil {
+		log.Println(err)
+	}
+
+	params.NetworkUtilization = sigar.NetworkUtilization{}
+	if params.NetworkUtilization.Get() != nil {
+		log.Println(err)
+	}
+
+	var reply rb.HostOpResult
+	return a.backend.Call("Host.TrackMetrics", params, &reply)
+}
+
 func (a *Agent) RunTasks() error {
 	args := rb.HostGetTasksParams{Auth: *a.auth}
 	var reply rb.HostGetTasksResult
@@ -104,12 +172,10 @@ func (a *Agent) RunTasks() error {
 				return
 			}
 			log.Printf("Start backup %s...", t.Local)
-			out, err := a.backup(&t)
-			if err != nil {
+			if out, err := a.backup(&t); err == nil {
+				a.commitBackup(&t, out)
+			} else {
 				log.Printf("Fail Backup %s error: %s", t.Local, err)
-			}
-			if err := a.commitBackup(&t, out); err != nil {
-				log.Println(err)
 			}
 			wg.Done()
 		}(t)

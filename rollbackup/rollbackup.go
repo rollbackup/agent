@@ -79,6 +79,10 @@ func AddAction(c *cli.Context) {
 func BackupAction(c *cli.Context) {
 	a := getAgent(c)
 
+	if err := a.TrackMetrics(); err != nil {
+		log.Println(err)
+	}
+
 	lockfile := filepath.Join(os.TempDir(), "rollbackup.lock")
 	if _, err := lock.Lock(lockfile); err != nil {
 		log.Fatal(err)

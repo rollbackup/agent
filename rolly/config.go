@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
-	"path/filepath"
 )
 
 type Config struct {
@@ -15,11 +13,7 @@ type Config struct {
 }
 
 func ConfigPath() string {
-	if u, err := user.Current(); err == nil {
-		return filepath.Join(u.HomeDir, ".rollbackup.conf")
-	} else {
-		panic(err)
-	}
+	return "/tmp/rollbackup.conf"
 }
 
 func LoadConfig(filename string) (*Config, error) {
