@@ -123,7 +123,7 @@ func (a *Agent) TrackMetrics() error {
 
 		usage := sigar.FileSystemUsage{}
 		if err := usage.Get(fs.DirName); err == nil {
-			params.FileSystemUsage[dir_name] = usage
+			params.FileSystemUsage[fs.DirName] = usage
 		} else {
 			log.Println(err)
 		}
