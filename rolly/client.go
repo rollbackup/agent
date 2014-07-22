@@ -117,13 +117,12 @@ func (a *Agent) TrackMetrics() error {
 
 	params.FileSystemUsage = make(map[string]sigar.FileSystemUsage)
 	for _, fs := range params.FileSystemList.List {
-		dir_name := fs.DirName
-		if dir_name == "" {
+		if fs.DirName == "" {
 			continue
 		}
 
 		usage := sigar.FileSystemUsage{}
-		if err := usage.Get(dir_name); err == nil {
+		if err := usage.Get(fs.DirName); err == nil {
 			params.FileSystemUsage[dir_name] = usage
 		} else {
 			log.Println(err)
