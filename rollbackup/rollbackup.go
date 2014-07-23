@@ -56,13 +56,33 @@ func InitAction(c *cli.Context) {
 }
 
 func registerHost(c *cli.Context) error {
-	hostIdAndToken := strings.SplitN(c.Args().First(), "@", 2)
-	if len(hostIdAndToken) != 2 {
-		return errors.New("Invalid auth token")
-	}
+	authData := c.Args().First()
 
-	hostId := hostIdAndToken[0]
-	token := hostIdAndToken[1]
+	var hostId string
+	var token string
+
+	if strings.HasPrefix(authData, "u") {
+		conn, err := rolly.NewBackend(c.GlobalString("backend"))
+		if err != nil {
+			return err
+		}
+
+		if hostAuth, err := rolly.InitHost(conn, authData, Version); err == nil {
+			hostId = hostAuth.HostId
+			token = hostAuth.Token
+		} else {
+			return err
+		}
+
+	} else {
+		hostIdAndToken := strings.SplitN(authData, "@", 2)
+		if len(hostIdAndToken) != 2 {
+			return errors.New("Invalid auth token")
+		}
+
+		hostId = hostIdAndToken[0]
+		token = hostIdAndToken[1]
+	}
 
 	// generate ssh key, if not exists
 	if _, err := os.Stat(rolly.KeyPath); os.IsNotExist(err) {

@@ -32,11 +32,31 @@ type Client struct {
 	Token  string
 }
 
+func NewBackend(backendAddr string) (*rpc.Client, error) {
+	conn, err := secrpc.SecureDial("tcp", backendAddr, []byte(RollbackupCA))
+	if err != nil {
+		log.Fatal("agent connection: ", err)
+		return nil, err
+	}
+	return jsonrpc.NewClient(conn), nil
+}
+
+func InitHost(backend *rpc.Client, userToken string, agentVersion string) (hostAuth *rb.HostAuth, err error) {
+	args := rb.HostInitParams{Token: userToken, AgentVersion: agentVersion}
+	args.Hostname, err = os.Hostname()
+	if err != nil {
+		return
+	}
+	err = backend.Call("Host.Init", args, &hostAuth)
+	return
+}
+
 func NewAgent(backendAddr, hostId, token, agentVersion string) *Agent {
 	conn, err := secrpc.SecureDial("tcp", backendAddr, []byte(RollbackupCA))
 	if err != nil {
 		log.Fatal("agent connection: ", err)
 	}
+
 	return &Agent{
 		auth:    &rb.HostAuth{HostId: hostId, Token: token, AgentVersion: agentVersion},
 		backend: jsonrpc.NewClient(conn),
