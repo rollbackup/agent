@@ -117,6 +117,7 @@ func AddAction(c *cli.Context) {
 }
 
 func BackupAction(c *cli.Context) {
+	CheckUid(c.Command.Name)
 	a := getAgent(c)
 
 	if err := a.TrackMetrics(); err != nil {
