@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	Token  string
-	HostId string
+	Token   string
+	HostId  string
+	Version string
 }
 
 func ConfigPath() string {
-	return "/tmp/rollbackup.conf"
+	return "/etc/rollbackup/agent.conf"
 }
 
 func LoadConfig(filename string) (*Config, error) {
@@ -43,7 +44,7 @@ func WriteConfig(c *Config, configPath string) error {
 
 func WriteCrontab() error {
 	cmd := fmt.Sprintf("* * * * * root /usr/local/bin/rollbackup backup >> /var/log/rollbackup_cron.log 2>&1")
-	return ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0644)
+	return ioutil.WriteFile("/etc/cron.d/rollbackup", []byte(cmd), 0600)
 }
 
 func RemoveCrontab() error {

@@ -32,13 +32,13 @@ type Client struct {
 	Token  string
 }
 
-func NewAgent(backendAddr, hostId, token string) *Agent {
+func NewAgent(backendAddr, hostId, token, agentVersion string) *Agent {
 	conn, err := secrpc.SecureDial("tcp", backendAddr, []byte(RollbackupCA))
 	if err != nil {
 		log.Fatal("agent connection: ", err)
 	}
 	return &Agent{
-		auth:    &rb.HostAuth{HostId: hostId, Token: token},
+		auth:    &rb.HostAuth{HostId: hostId, Token: token, AgentVersion: agentVersion},
 		backend: jsonrpc.NewClient(conn),
 	}
 }
@@ -203,6 +203,7 @@ func (a *Agent) backup(t *rb.Task) (string, error) {
 		args = append(args, fmt.Sprintf("--link-dest=%s", t.LinkDest))
 	}
 	args = append(args, "--stats", t.Local, t.Remote)
+	log.Println(args)
 
 	cmd := exec.Command("rsync", args...)
 	var stdout bytes.Buffer
@@ -212,6 +213,10 @@ func (a *Agent) backup(t *rb.Task) (string, error) {
 	cmd.Stdout = &stdout
 
 	err = cmd.Run()
+
+	if err != nil {
+		log.Println(stderr.String())
+	}
 
 	a.logBackup(&rb.HostLogBackupParams{
 		BackupId:    t.BackupId,
