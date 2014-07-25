@@ -4,7 +4,7 @@ VERSION=$(cat VERSION)
 
 echo "Current Version: $VERSION"
 
-fpm_flags="--verbose --license GPLv3 --vendor RollBackup.com --url https://rollbackup.com/ --maintainer dist@rollbackup.com --before-install ../before-install.sh"
+fpm_flags="--verbose --license GPLv3 --vendor RollBackup.com --url https://rollbackup.com/ --maintainer dist@rollbackup.com --before-install ../before-install.sh --depends 'rsync'"
 BUILD_DIR=/tmp/rollbackup-agent-build
 
 _build() {
