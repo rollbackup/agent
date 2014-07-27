@@ -159,6 +159,10 @@ func (a *Agent) TrackMetrics() error {
 		log.Println(err)
 	}
 
+	if params.DiskStats, err = sigar.GetDiskStats(); err != nil {
+		log.Println(err)
+	}
+
 	var reply rb.HostOpResult
 	return a.backend.Call("Host.TrackMetrics", params, &reply)
 }
