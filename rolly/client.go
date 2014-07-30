@@ -223,9 +223,7 @@ func (a *Agent) backup(t *rb.Task) (string, error) {
 	defer os.Remove(fpFile)
 
 	args := buildRsyncArgs(fpFile, KeyPath)
-	if t.LinkDest != "" {
-		args = append(args, fmt.Sprintf("--link-dest=%s", t.LinkDest))
-	}
+	args = append(args, t.Args...)
 	args = append(args, "--stats", t.Local, t.Remote)
 	log.Println(args)
 
