@@ -16,6 +16,14 @@ import (
 var LockPath = "/var/lock/rollbackup.lock"
 var Version = "dev"
 
+func BackendAddr() string {
+	backend := os.Getenv("RB_BACKEND")
+	if backend == "" {
+		backend = "backend.rollbackup.com:8443"
+	}
+	return backend
+}
+
 func RestoreAction(c *cli.Context) {
 	a := getAgent(c)
 	backupId := c.Args().Get(0)
@@ -62,7 +70,7 @@ func registerHost(c *cli.Context) error {
 	var token string
 
 	if strings.HasPrefix(authData, "u") {
-		conn, err := rolly.NewBackend(c.GlobalString("backend"))
+		conn, err := rolly.NewBackend(BackendAddr())
 		if err != nil {
 			return err
 		}
@@ -96,13 +104,18 @@ func registerHost(c *cli.Context) error {
 		return err
 	}
 
-	if err := rolly.NewAgent(c.GlobalString("backend"), hostId, token, Version).Register(string(publicKey)); err != nil {
+	a := rolly.NewAgent(BackendAddr(), hostId, token, Version)
+	if err := a.Register(string(publicKey)); err != nil {
 		return err
 	}
 
 	conf := &rolly.Config{HostId: hostId, Token: token, Version: Version}
 	if err := rolly.WriteConfig(conf, rolly.ConfigPath()); err != nil {
 		return err
+	}
+
+	if err := a.TrackMetrics(); err != nil {
+		fmt.Println(err)
 	}
 
 	return nil
@@ -113,7 +126,7 @@ func getAgent(c *cli.Context) *rolly.Agent {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a := rolly.NewAgent(c.GlobalString("backend"), config.HostId, config.Token, Version)
+	a := rolly.NewAgent(BackendAddr(), config.HostId, config.Token, Version)
 	return a
 }
 
@@ -190,9 +203,6 @@ func main() {
 	app.Author = "RollBackup LLC"
 	app.Email = "mail@rollbackup.com"
 	app.Usage = "A client utility for manage backup via RollBackup.com"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"backend", "backend.rollbackup.com:8443", "command service backend"},
-	}
 
 	app.Commands = []cli.Command{
 		{
