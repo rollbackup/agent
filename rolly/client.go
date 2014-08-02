@@ -196,7 +196,9 @@ func (a *Agent) RunTasks() error {
 			}
 			log.Printf("Start backup %s...", t.Local)
 			if out, err := a.backup(&t); err == nil {
-				a.commitBackup(&t, out)
+				if err := a.commitBackup(&t, out); err != nil {
+					log.Printf("Commit Backup Error: %s", err)
+				}
 			} else {
 				log.Printf("Fail Backup %s error: %s", t.Local, err)
 			}
