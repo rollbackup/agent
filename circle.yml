@@ -15,4 +15,4 @@ deployment:
     branch: master
     commands:
       - rsync -avz $CIRCLE_ARTIFACTS/ dist@dist.rollbackup.com:~/latest
-      - ssh dist@dist.rollbackup.com "mv ~/latest/* /var/www/dist/latest/ && ~/update-repo.sh"
+      - ssh dist@dist.rollbackup.com "rm -rf /var/www/dist/latest && mv ~/latest /var/www/dist/latest && ~/update-repo.sh"
