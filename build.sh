@@ -15,6 +15,7 @@ _build() {
 
 	go build -ldflags "-X main.Version $VERSION" rollbackup.go	
 	strip rollbackup
+	
 	mkdir -p $BUILD_DIR/usr/local/bin
 	cp rollbackup $BUILD_DIR/usr/local/bin/
 
@@ -28,6 +29,8 @@ _build() {
 	if [ ! -z "$CIRCLE_ARTIFACTS" ]; then
 		mv *.deb $CIRCLE_ARTIFACTS/
 		mv *.rpm $CIRCLE_ARTIFACTS/
+		mkdir -p $CIRCLE_ARTIFACTS/bin/$ARCH/
+		cp rollbackup $CIRCLE_ARTIFACTS/bin/$ARCH/rollbackup
 	fi
 }
 
