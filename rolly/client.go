@@ -183,6 +183,30 @@ func (a *Agent) RunTasks() error {
 	for _, t := range reply.Tasks {
 		wg.Add(1)
 		go func(t rb.Task) {
+			var err error
+			if t.Plugin.Name != "" {
+				t.Local, err = ioutil.TempDir("", "rollbackup_plugin_"+t.Plugin.Name)
+				if err != nil {
+					log.Print(err)
+					wg.Done()
+					return
+				}
+				p := &Plugin{Name: t.Plugin.Name, Version: t.Plugin.Version}
+				if !IsPluginExists(p) {
+					if err := DownloadPlugin(p); err != nil {
+						log.Print(err)
+						wg.Done()
+						return
+
+					}
+				}
+				if err := RunPlugin(p, t.Local, t.Plugin.Options); err != nil {
+					log.Print(err)
+					wg.Done()
+					return
+				}
+			}
+
 			if _, err := os.Stat(t.Local); err != nil {
 				log.Println(err)
 				a.logBackup(&rb.HostLogBackupParams{

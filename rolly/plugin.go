@@ -3,18 +3,19 @@ package rolly
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
 var PluginBase = "/tmp/plugin"
 
 type Plugin struct {
-	Name string
+	Name    string
+	Version string
 }
 
 func (p *Plugin) BackupScript() string {
@@ -22,27 +23,25 @@ func (p *Plugin) BackupScript() string {
 }
 
 func (p *Plugin) Dir() string {
-	return path.Join(PluginBase, p.Name)
+	return path.Join(PluginBase, p.Name+"-"+p.Version)
 }
 
-func RunPlugin(p *Plugin, params map[string]string) error {
+func RunPlugin(p *Plugin, outpath string, params map[string]string) error {
 	cmd := exec.Command("bash", p.BackupScript())
 	env := []string{}
 
 	for k, v := range params {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		env = append(env, fmt.Sprintf("RB_%s=%s", strings.ToUpper(k), v))
 	}
 
-	var err error
-	if cmd.Dir, err = ioutil.TempDir("", "rollbackup_plugin_"+p.Name); err != nil {
-		return err
-	}
+	log.Printf("ENV: %+v\n", env)
 
+	cmd.Dir = outpath
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Start()
+	err := cmd.Start()
 
 	if err != nil {
 		return err
@@ -58,13 +57,18 @@ func RunPlugin(p *Plugin, params map[string]string) error {
 }
 
 func DownloadPlugin(p *Plugin) error {
-	fname := p.Name + ".zip"
-	resp, err := http.Get("http://dist.rollbackup.com/plugin/" + fname)
+	fname := fmt.Sprintf("%s_%s.zip", p.Name, p.Version)
+
+	url := fmt.Sprintf("http://roll:8000/plugin/%s/%s/download", p.Name, p.Version)
+	log.Printf("Get plugin from %s...", url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	out, err := os.Create(path.Join(PluginBase, fname))
+	fpath := path.Join(PluginBase, fname)
+	log.Printf("Write to %s", fpath)
+	out, err := os.Create(fpath)
 	if err != nil {
 		return err
 	}
@@ -73,7 +77,10 @@ func DownloadPlugin(p *Plugin) error {
 		return err
 	}
 
-	cmd := exec.Command("unzip", path.Join(PluginBase, fname), "-d", p.Dir())
+	cmd := exec.Command("unzip", fpath, "-d", PluginBase)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	log.Printf("Extract to %s", p.Dir())
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("Command finished with error: %v", err)
@@ -81,4 +88,13 @@ func DownloadPlugin(p *Plugin) error {
 	}
 
 	return nil
+}
+
+func IsPluginExists(p *Plugin) bool {
+	log.Printf("IsPluginExists: check %s", p.Dir())
+	if _, err := os.Stat(p.Dir()); err != nil {
+		return false
+	}
+
+	return true
 }
