@@ -22,7 +22,10 @@ _build() {
 	mkdir -p $BUILD_DIR/etc/cron.d
 	echo "* * * * * root /usr/local/bin/rollbackup backup >> /var/log/rollbackup_cron.log 2>&1" > $BUILD_DIR/etc/cron.d/rollbackup
 	chmod 600 $BUILD_DIR/etc/cron.d/rollbackup
-	
+
+	# plugins dir
+	mkdir -p $BUILD_DIR/usr/share/rollbackup
+
 	fpm -t deb -C $BUILD_DIR -s dir -n rollbackup -f -a $ARCH -v $VERSION --package rollbackup_$ARCH.deb $fpm_flags .
 	fpm -t rpm -C $BUILD_DIR -s dir -n rollbackup -f -a $ARCH --epoch 0 -v $VERSION --package rollbackup_$ARCH.rpm $fpm_flags .
 

@@ -167,6 +167,20 @@ func (a *Agent) TrackMetrics() error {
 	return a.backend.Call("Host.TrackMetrics", params, &reply)
 }
 
+func runBackupPlugin(t *rb.Task) error {
+	p := &Plugin{Name: t.Plugin.Name, Version: t.Plugin.Version}
+	if !p.IsExists() {
+		if err := p.Download(); err != nil {
+			return err
+		}
+	}
+
+	if err := p.Run(t.Local, t.Plugin.Options); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *Agent) RunTasks() error {
 	args := rb.HostGetTasksParams{Auth: *a.auth}
 	var reply rb.HostGetTasksResult
@@ -183,6 +197,22 @@ func (a *Agent) RunTasks() error {
 	for _, t := range reply.Tasks {
 		wg.Add(1)
 		go func(t rb.Task) {
+			defer wg.Done()
+
+			if t.Plugin.Name != "" {
+				if outdir, err := ioutil.TempDir("", "rollbackup_plugin_"+t.Plugin.Name); err != nil {
+					log.Println(err)
+					return
+				} else {
+					t.Local = outdir + "/"
+				}
+
+				if err := runBackupPlugin(&t); err != nil {
+					log.Println(err)
+					return
+				}
+			}
+
 			if _, err := os.Stat(t.Local); err != nil {
 				log.Println(err)
 				a.logBackup(&rb.HostLogBackupParams{
@@ -191,9 +221,9 @@ func (a *Agent) RunTasks() error {
 					Path:      t.Local,
 					StatError: fmt.Sprintf("%s", err),
 				})
-				wg.Done()
 				return
 			}
+
 			log.Printf("Start backup %s...", t.Local)
 			if out, err := a.backup(&t); err == nil {
 				if err := a.commitBackup(&t, out); err != nil {
@@ -202,7 +232,6 @@ func (a *Agent) RunTasks() error {
 			} else {
 				log.Printf("Fail Backup %s error: %s", t.Local, err)
 			}
-			wg.Done()
 		}(t)
 	}
 	wg.Wait()
@@ -227,7 +256,7 @@ func (a *Agent) backup(t *rb.Task) (string, error) {
 	args := buildRsyncArgs(fpFile, KeyPath)
 	args = append(args, t.Args...)
 	args = append(args, "--stats", t.Local, t.Remote)
-	log.Println(args)
+	log.Print("RSYNC: ", args)
 
 	cmd := exec.Command("rsync", args...)
 	var stdout bytes.Buffer
@@ -305,7 +334,7 @@ func (a *Agent) runRestore(local, remote, sshFp string) error {
 	if err != nil {
 		return err
 	}
-	//defer os.Remove(fpFile)
+	defer os.Remove(fpFile)
 
 	args := buildRsyncArgs(fpFile, KeyPath)
 	args = append(args, remote, local)
