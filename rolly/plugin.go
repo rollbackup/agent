@@ -11,7 +11,15 @@ import (
 	"strings"
 )
 
-var PluginBase = "/tmp/plugin"
+var PluginBase = "/usr/share/rollbackup"
+
+func PluginUrl() string {
+	url := os.Getenv("RB_PLUGIN_URL")
+	if url == "" {
+		url = "https://rollbackup.com"
+	}
+	return url
+}
 
 type Plugin struct {
 	Name    string
@@ -26,7 +34,7 @@ func (p *Plugin) Dir() string {
 	return path.Join(PluginBase, p.Name+"-"+p.Version)
 }
 
-func RunPlugin(p *Plugin, outpath string, params map[string]string) error {
+func (p *Plugin) Run(outpath string, params map[string]string) error {
 	cmd := exec.Command("bash", p.BackupScript())
 	env := []string{}
 
@@ -34,7 +42,7 @@ func RunPlugin(p *Plugin, outpath string, params map[string]string) error {
 		env = append(env, fmt.Sprintf("RB_%s=%s", strings.ToUpper(k), v))
 	}
 
-	log.Printf("ENV: %+v\n", env)
+	log.Printf("Plugin Env: %+v\n", env)
 
 	cmd.Dir = outpath
 	cmd.Env = env
@@ -42,32 +50,31 @@ func RunPlugin(p *Plugin, outpath string, params map[string]string) error {
 	cmd.Stderr = os.Stderr
 
 	err := cmd.Start()
-
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Waiting for command to finish...")
 	if err = cmd.Wait(); err != nil {
+		log.Printf("Command finished with error: %v", err)
 		return err
 	}
-	log.Printf("Command finished with error: %v", err)
 
 	return nil
 }
 
-func DownloadPlugin(p *Plugin) error {
+func (p *Plugin) Download() error {
 	fname := fmt.Sprintf("%s_%s.zip", p.Name, p.Version)
 
-	url := fmt.Sprintf("http://roll:8000/plugin/%s/%s/download", p.Name, p.Version)
-	log.Printf("Get plugin from %s...", url)
+	url := fmt.Sprintf("%s/plugin/%s/%s/download", PluginUrl(), p.Name, p.Version)
+
+	log.Printf("Download plugin %s from %s", p.Name, url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	fpath := path.Join(PluginBase, fname)
-	log.Printf("Write to %s", fpath)
+
 	out, err := os.Create(fpath)
 	if err != nil {
 		return err
@@ -76,6 +83,7 @@ func DownloadPlugin(p *Plugin) error {
 	if _, err := io.Copy(out, resp.Body); err != nil {
 		return err
 	}
+	log.Printf("Plugin %s saved to %s", p.Name, fpath)
 
 	cmd := exec.Command("unzip", fpath, "-d", PluginBase)
 	cmd.Stderr = os.Stderr
@@ -90,11 +98,10 @@ func DownloadPlugin(p *Plugin) error {
 	return nil
 }
 
-func IsPluginExists(p *Plugin) bool {
+func (p *Plugin) IsExists() bool {
 	log.Printf("IsPluginExists: check %s", p.Dir())
 	if _, err := os.Stat(p.Dir()); err != nil {
 		return false
 	}
-
 	return true
 }
