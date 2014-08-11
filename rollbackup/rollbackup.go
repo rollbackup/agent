@@ -189,16 +189,6 @@ func DisableAction(c *cli.Context) {
 	fmt.Println("Success! Agent backup schedule disabled.")
 }
 
-//func PluginAction(c *cli.Context) {
-//	p := &rolly.Plugin{Name: "test"}
-//	params := map[string]string{
-//		"var": "fest",
-//	}
-//	//if err := rolly.RunPlugin(p, params); err != nil {
-///	//	log.Fatal(err)
-//	//}
-//}
-
 func CheckUid(commandName string) {
 	if os.Getuid() != 0 {
 		fmt.Printf("FAILED! Are you root? Please, run `sudo rollbackup %s [ARGS]`\n", commandName)
@@ -245,11 +235,6 @@ func main() {
 			Usage:  "Disable periodic backup",
 			Action: DisableAction,
 		},
-		//		{
-		//			Name:   "plugin",
-		//			Usage:  "",
-		//			Action: PluginAction,
-		//		},
 	}
 
 	app.Run(os.Args)
