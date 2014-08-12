@@ -169,7 +169,7 @@ func (a *Agent) TrackMetrics() error {
 
 func runBackupPlugin(t *rb.Task) error {
 	p := &Plugin{Name: t.Plugin.Name, Version: t.Plugin.Version}
-	if !p.IsExists() {
+	if !p.Exists() {
 		if err := p.Download(); err != nil {
 			return err
 		}
