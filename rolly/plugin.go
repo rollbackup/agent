@@ -27,16 +27,27 @@ type Plugin struct {
 	Version string
 }
 
-func (p *Plugin) BackupScript() string {
-	return filepath.Join(p.Dir(), "backup.sh")
+func NewPlugin(name string, version string) *Plugin {
+	if version == "" {
+		version = "last"
+	}
+	return &Plugin{Name: name, Version: version}
 }
 
 func (p *Plugin) Dir() string {
 	return filepath.Join(PluginBase, p.Name+"-"+p.Version)
 }
 
-func (p *Plugin) Run(outpath string, params map[string]string) error {
-	cmd := exec.Command("bash", p.BackupScript())
+func (p *Plugin) Backup(outpath string, params map[string]string) error {
+	return p.run(filepath.Join(p.Dir(), "backup.sh"), outpath, params)
+}
+
+func (p *Plugin) Restore(outpath string, params map[string]string) error {
+	return p.run(filepath.Join(p.Dir(), "restore.sh"), outpath, params)
+}
+
+func (p *Plugin) run(script string, outpath string, params map[string]string) error {
+	cmd := exec.Command("bash", script)
 	env := []string{}
 
 	for k, v := range params {

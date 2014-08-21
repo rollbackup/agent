@@ -29,7 +29,7 @@ func (self *PluginSuite) TestDownload(c *C) {
 	params := map[string]string{
 		"param": "test",
 	}
-	err = p.Run(dir, params)
+	err = p.Backup(dir, params)
 	c.Assert(err, IsNil)
 
 }

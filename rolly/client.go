@@ -175,7 +175,7 @@ func runBackupPlugin(t *rb.Task) error {
 		}
 	}
 
-	if err := p.Run(t.Local, t.Plugin.Options); err != nil {
+	if err := p.Backup(t.Local, t.Plugin.Options); err != nil {
 		return err
 	}
 	return nil
@@ -309,6 +309,10 @@ func buildRsyncArgs(sshFp, sshKey string) []string {
 	return []string{"-az", "-e", fmt.Sprintf("ssh -c arcfour -o Compression=no -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%s -i %s", sshFp, sshKey)}
 }
 
+func (a *Agent) RestorePlugin(pluginName string, backupId string) error {
+	return nil
+}
+
 func (a *Agent) Restore(backupId string, dest string) error {
 	args := rb.HostGetBackupParams{Auth: *a.auth, BackupId: backupId}
 	var reply rb.HostGetBackupResult
@@ -321,15 +325,43 @@ func (a *Agent) Restore(backupId string, dest string) error {
 		return errors.New("backup not found")
 	}
 
+	if reply.Plugin.Name != "" && dest == "" {
+		dest, err = ioutil.TempDir("", "rollbackup_plugin_restore_"+reply.Plugin.Name)
+		if err != nil {
+			return err
+		}
+	}
+
 	if _, err := os.Stat(dest); err == nil {
 		// TODO: add prompt and cmd-flag for force
 		return fmt.Errorf("directory already exists: %s", dest)
 	}
 
-	return a.runRestore(dest, reply.RsyncUrl+"/", reply.SshFingerprint)
+	err = runRestore(dest, reply.RsyncUrl+"/", reply.SshFingerprint)
+	if err != nil {
+		return err
+	}
+
+	if reply.Plugin.Name == "" {
+		return nil
+	}
+	log.Printf("Restore with %s (v%s)", reply.Plugin.Name, reply.Plugin.Version)
+
+	p := NewPlugin(reply.Plugin.Name, reply.Plugin.Version)
+	if !p.Exists() {
+		if err := p.Download(); err != nil {
+			return err
+		}
+	}
+
+	if err := p.Restore(dest, reply.Plugin.Options); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (a *Agent) runRestore(local, remote, sshFp string) error {
+func runRestore(local, remote, sshFp string) error {
 	fpFile, err := makeKnownHosts(sshFp)
 	if err != nil {
 		return err

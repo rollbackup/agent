@@ -39,7 +39,8 @@ func RestoreAction(c *cli.Context) {
 	}
 
 	if backupId == "" {
-		log.Fatal("no params")
+		fmt.Printf("Usage: `rollbackup restore backupId [destDir]`\n")
+		os.Exit(0)
 	}
 
 	fmt.Printf("Restore backup %s to %s...\n", backupId, absPath)
