@@ -35,10 +35,7 @@ func WriteConfig(c *Config, configPath string) error {
 	if data, err := json.Marshal(c); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(configPath, data, 0644); err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(configPath, data, 0644)
 }
 
 func WriteCrontab() error {
@@ -50,8 +47,5 @@ func RemoveCrontab() error {
 	if os.IsNotExist(err) {
 		return nil
 	}
-	if err := os.Remove("/etc/cron.d/rollbackup"); err != nil {
-		return err
-	}
-	return nil
+	return os.Remove("/etc/cron.d/rollbackup")
 }
