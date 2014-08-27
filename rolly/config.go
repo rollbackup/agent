@@ -44,7 +44,7 @@ func WriteCrontab() error {
 }
 
 func RemoveCrontab() error {
-	if os.IsNotExist(err) {
+	if _, err := os.Stat("/etc/cron.d/rollbackup"); os.IsNotExist(err) {
 		return nil
 	}
 	return os.Remove("/etc/cron.d/rollbackup")
