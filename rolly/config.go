@@ -32,7 +32,8 @@ func LoadConfig(filename string) (*Config, error) {
 }
 
 func WriteConfig(c *Config, configPath string) error {
-	if data, err := json.Marshal(c); err != nil {
+	data, err := json.Marshal(c)
+	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(configPath, data, 0644)
